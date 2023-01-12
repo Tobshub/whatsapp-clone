@@ -1,0 +1,14 @@
+.user-form {
+  width: min(90%, 500px);
+  margin: 0 auto;
+
+  fieldset {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  label,
+  button {
+    width: min(300px, 100%);
+  }
+}
