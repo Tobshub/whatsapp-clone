@@ -1,6 +1,7 @@
 import ThemeContext from "@context/theme";
 import UserForm from "@layouts/forms/user-form";
 import genId from "@services/id";
+import { saveUser } from "@services/user";
 import csx from "@utils/csx";
 import trpc from "@utils/trpc";
 import { useState, useContext } from "react";
@@ -17,12 +18,16 @@ export default function UserSignUp() {
     email: "",
     password: "",
   });
+  const [errorState, setErrorState] = useState<boolean>(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUserDetails(state => ({
       ...state,
       [e.target.name]: e.target.value ?? "",
     }));
+    if (errorState) {
+      setErrorState(false);
+    }
   };
 
   const signUp = trpc.user.new.useMutation();
@@ -30,18 +35,25 @@ export default function UserSignUp() {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     await signUp
-      .mutateAsync({ ...userDetails, id: genId() })
+      .mutateAsync({ ...userDetails, id: genId("chat") })
       .then(user => {
-        console.log(user);
+        saveUser(user);
       })
       .catch(e => {
-        console.log(e);
+        if (e.message === "user_exists") {
+          setErrorState(true);
+        }
       });
   };
 
   return (
     <UserForm handleSubmit={handleSubmit} theme={theme}>
       <h1>Sign Up</h1>
+      {errorState ? (
+        <p className={csx("alert alert-danger p-1")}>
+          An account already exists with that email
+        </p>
+      ) : null}
       <fieldset className="input-group">
         <label>
           <span>Name: </span>

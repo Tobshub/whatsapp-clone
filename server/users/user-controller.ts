@@ -7,7 +7,18 @@ export async function createUser(user: SecureUser) {
     const password = await secure.hash(user.password, 10);
 
     const newUser = new UserModel({ ...user, password });
-    const saved = await newUser.save().then(doc => doc.toObject());
+    const saved = await newUser
+      .save()
+      .then(doc => {
+        if (!doc) {
+          throw new Error("unknown");
+        }
+        return doc.toObject();
+      })
+      .catch(e => {
+        throw new Error("user_exists");
+      });
+
     return saved;
   } catch (error) {
     throw error;
@@ -21,7 +32,7 @@ export async function authenticateUser(user: UserCreds) {
     })
       .then(doc => {
         if (!doc) {
-          throw new Error("no user found");
+          throw new Error("user_not_found");
         }
         return doc.toObject();
       })

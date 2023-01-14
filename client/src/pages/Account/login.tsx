@@ -15,12 +15,16 @@ export default function UserLogin() {
     email: "",
     password: "",
   });
+  const [errorState, setErrorState] = useState<boolean>(false);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUserDetails(state => ({
       ...state,
       [e.target.name]: e.target.value ?? "",
     }));
+    if (errorState) {
+      setErrorState(false);
+    }
   };
 
   const login = trpc.user.login.useQuery(userDetails, { enabled: false });
@@ -40,11 +44,26 @@ export default function UserLogin() {
     }
   }, [login.data]);
 
+  useEffect(() => {
+    if (login.error) {
+      const { message } = login.error;
+      if (message === "user_not_found") {
+        console.log(message);
+        setErrorState(true);
+      }
+    }
+  }, [login.error]);
+
   if (login.isLoading && login.isFetching) return <>Loading...</>;
 
   return (
     <UserForm handleSubmit={handleSubmit} theme={theme}>
       <h1>Login</h1>
+      {errorState ? (
+        <p className={csx("alert alert-danger p-1")}>
+          Email or password is incorrect
+        </p>
+      ) : null}
       <fieldset className="input-group">
         <label>
           <span>Email: </span>

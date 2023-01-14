@@ -13,18 +13,16 @@ const userRouter = tRouter({
         id: z.string().startsWith("wa"),
       })
     )
-    .mutation(async ({ input }) => {
-      const newUser = await createUser(input).catch(e => {
-        if (e) {
-          throw new tError({
-            code: "INTERNAL_SERVER_ERROR",
-            message: "An error occured while trying to create user",
-            cause: "unknown",
-          });
-        }
+    .mutation(async ({ input }): Promise<SafeUser> => {
+      const newUser = await createUser(input).catch((e: Error) => {
+        throw new tError({
+          code: "INTERNAL_SERVER_ERROR",
+          message: e.message,
+          cause: "unknown",
+        });
       });
 
-      return newUser;
+      return { id: newUser.id, email: newUser.email, name: newUser.name };
     }),
   login: tProcedure
     .input<ParserWithInputOutput<UserCreds, UserCreds>>(
@@ -34,10 +32,10 @@ const userRouter = tRouter({
       })
     )
     .query(async ({ input }): Promise<SafeUser> => {
-      const user = await authenticateUser(input).catch(e => {
+      const user = await authenticateUser(input).catch((e: Error) => {
         throw new tError({
           code: "INTERNAL_SERVER_ERROR",
-          message: "an error occured",
+          message: e.message,
           cause: "unknown",
         });
       });
@@ -45,8 +43,8 @@ const userRouter = tRouter({
       if (!user) {
         throw new tError({
           code: "BAD_REQUEST",
-          message: "could not authenticate user",
-          cause: "email or password is wrong",
+          message: "email or password is wrong",
+          cause: "could not authenticate user",
         });
       }
 

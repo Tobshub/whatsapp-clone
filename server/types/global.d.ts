@@ -23,6 +23,13 @@ declare global {
 
   // Chat
 
+  interface NewChat {
+    id: string;
+    title: string;
+    // add other members with their email
+    members: string;
+  }
+
   interface Chat {
     id: string;
     title: string;

@@ -14,6 +14,7 @@ export default function Index() {
 
   useEffect(() => {
     getUser().then(user => {
+      // redirect to the login screen if there is no user
       if (!user) {
         navigate("/user/login", { replace: true });
       } else {
@@ -21,6 +22,8 @@ export default function Index() {
       }
     });
   }, []);
+
+  if (!user) return <>Loading...</>;
 
   return (
     <div
@@ -31,7 +34,7 @@ export default function Index() {
         theme.foreground
       )}
     >
-      <ChatSideBar />
+      <ChatSideBar user={user} />
       <main>
         <Outlet />
       </main>
