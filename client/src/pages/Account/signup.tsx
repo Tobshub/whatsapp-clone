@@ -5,7 +5,7 @@ import { saveUser } from "@services/user";
 import csx from "@utils/csx";
 import trpc from "@utils/trpc";
 import { useState, useContext } from "react";
-import { Form, Link } from "react-router-dom";
+import { Form, Link, useNavigate } from "react-router-dom";
 
 export default function UserSignUp() {
   const { theme } = useContext(ThemeContext);
@@ -31,13 +31,15 @@ export default function UserSignUp() {
   };
 
   const signUp = trpc.user.new.useMutation();
+  const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     await signUp
-      .mutateAsync({ ...userDetails, id: genId("chat") })
+      .mutateAsync({ ...userDetails, id: genId("user") })
       .then(user => {
         saveUser(user);
+        navigate("/", { replace: true });
       })
       .catch(e => {
         if (e.message === "user_exists") {
