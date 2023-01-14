@@ -3,25 +3,30 @@ import { getUser } from "@services/user";
 import { useQuery } from "@tanstack/react-query";
 import ChatSideBar from "@ui-components/chat-sidebar";
 import csx from "@utils/csx";
+import serverIO from "@utils/socket";
 import trpc from "@utils/trpc";
 import { useEffect, useState, useContext } from "react";
 import { Outlet, useNavigate } from "react-router-dom";
 
 export default function Index() {
   const { theme } = useContext(ThemeContext);
-  const [user, setUser] = useState<SafeUser>();
+  const { data: user, isLoading } = useQuery({
+    queryKey: ["user"],
+    queryFn: getUser,
+  });
   const navigate = useNavigate();
 
   useEffect(() => {
-    getUser().then(user => {
-      // redirect to the login screen if there is no user
-      if (!user) {
-        navigate("/user/login", { replace: true });
-      } else {
-        setUser(user);
-      }
-    });
-  }, []);
+    // redirect to the login screen if there is no user
+    if (!user && !isLoading) {
+      navigate("/user/login", { replace: true });
+    } else if (user) {
+      // add userID to the handshake to use as default room
+      serverIO().then(socket => {
+        if (socket) socket.connect();
+      });
+    }
+  }, [user, isLoading]);
 
   if (!user) return <>Loading...</>;
 
@@ -35,7 +40,7 @@ export default function Index() {
       )}
     >
       <ChatSideBar user={user} />
-      <main>
+      <main className={csx("w-100 h-100")}>
         <Outlet />
       </main>
     </div>

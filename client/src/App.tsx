@@ -4,7 +4,6 @@ import { appQueryClient, appTrpcClient } from "@lib/query-client";
 import { QueryClientProvider } from "@tanstack/react-query";
 import Index from "@pages/index";
 import NewChat from "@pages/Chat/new-chat";
-import serverIO from "@utils/socket";
 import ChatPage, { loader as chatPageLoader } from "@pages/Chat/chat-page";
 import ThemeContext, { themes } from "@context/theme";
 import { useState } from "react";
@@ -41,8 +40,6 @@ const router = createBrowserRouter([
     ],
   },
 ]);
-
-serverIO.connect();
 
 export default function App() {
   // handle theme at the top layer of the app

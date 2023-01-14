@@ -29,7 +29,8 @@ export const clientIO = new socketServer(server, {
 });
 
 clientIO.on("connection", socket => {
-  console.log("new connection established", socket.id);
+  console.log("new connection established", socket.handshake.auth.userID);
+  socket.join(socket.handshake.auth.userID);
 });
 
 server.listen(2048, () => {
