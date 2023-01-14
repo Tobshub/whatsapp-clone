@@ -37,8 +37,8 @@ export default function UserSignUp() {
     e.preventDefault();
     await signUp
       .mutateAsync({ ...userDetails, id: genId("user") })
-      .then(user => {
-        saveUser(user);
+      .then(async user => {
+        await saveUser(user);
         navigate("/", { replace: true });
       })
       .catch(e => {

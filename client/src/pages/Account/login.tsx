@@ -1,6 +1,7 @@
 import ThemeContext from "@context/theme";
 import UserForm from "@layouts/forms/user-form";
-import { saveUser } from "@services/user";
+import { getUser, saveUser } from "@services/user";
+import { useQuery } from "@tanstack/react-query";
 import csx from "@utils/csx";
 import trpc from "@utils/trpc";
 import { useState, useEffect, useContext } from "react";
@@ -8,6 +9,9 @@ import { Form, Link, useNavigate } from "react-router-dom";
 
 export default function UserLogin() {
   const { theme } = useContext(ThemeContext);
+
+  const navigate = useNavigate();
+
   const [userDetails, setUserDetails] = useState<{
     email: string;
     password: string;
@@ -33,8 +37,6 @@ export default function UserLogin() {
     e.preventDefault();
     login.refetch();
   };
-
-  const navigate = useNavigate();
 
   useEffect(() => {
     if (login.data) {
