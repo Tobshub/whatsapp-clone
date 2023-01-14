@@ -34,7 +34,7 @@ declare global {
     id: string;
     title: string;
     members: SafeUser[];
-    messages: Messages[];
+    messages: Message[];
   }
 
   interface ChatRef {
@@ -42,7 +42,9 @@ declare global {
     title: string;
   }
 
-  interface Messages {
+  interface Message {
+    // use userID to signify the sender
+    sender: string;
     time: number;
     content: string;
   }
