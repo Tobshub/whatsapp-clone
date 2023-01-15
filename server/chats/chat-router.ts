@@ -1,61 +1,167 @@
-import { string } from "zod";
 import { tError, tProcedure, tRouter } from "../trpc";
 import z from "zod";
 import { ParserWithInputOutput } from "@trpc/server/dist/core/parser";
 import { clientIO } from "..";
-
-const chats: Chat[] = [];
+import { createChat, getChat, getChats } from "./chat-controller";
 
 const chatRouter = tRouter({
   new: tProcedure
-    .input<ParserWithInputOutput<Chat, Chat>>(
+    .input<
+      ParserWithInputOutput<
+        { user: SafeUser; chat: NewChat },
+        { user: SafeUser; chat: NewChat }
+      >
+    >(
       z.object({
-        id: z.string(),
-        title: z.string(),
-        members: z
-          .object({
-            id: z.string().startsWith("wa"),
-            email: z.string().email(),
-            name: z.string(),
-          })
-          .array(),
-        messages: z
-          .object({ time: z.number(), content: z.string() })
-          .array(),
+        user: z.object({
+          id: z.string().startsWith("wa"),
+          email: z.string().email(),
+          name: z.string(),
+        }),
+        chat: z.object({
+          id: z.string(),
+          title: z.string(),
+          members: z.string().email(),
+        }),
       })
     )
-    .mutation(async ({ input }) => {
-      chats.push(input);
-      clientIO.emit("new_chat");
-      return chats;
-    }),
-  get: tProcedure.query(() => {
-    return chats;
-  }),
-  one: tProcedure
-    .input(z.object({ id: z.string() }))
-    .query(({ input }) => {
-      const chat = chats.find(chat => chat.id === input.id);
-      if (!chat) {
-        throw new tError({
-          code: "NOT_FOUND",
-          cause: "invalid chat id",
-          message: `the chat with chat-id ${input.id} was not found`,
+    .mutation(async ({ input }): Promise<Chat> => {
+      const newChat = await createChat(input.user, input.chat)
+        .then(chat => {
+          return chat;
+        })
+        .catch(e => {
+          if (e.messsage === "user_not_found") {
+            throw new tError({
+              code: "BAD_REQUEST",
+              message: "user_not_found",
+              cause: "the member you tried to add does not exist",
+            });
+          } else {
+            throw new tError({
+              code: "INTERNAL_SERVER_ERROR",
+              message: "an error occurred",
+              cause: "unknown",
+            });
+          }
         });
-      }
+
+      // tell the client a new chat has been made
+      clientIO.to(input.user.id).emit("new_chat");
+
+      return {
+        id: newChat.id,
+        members: newChat.members,
+        title: newChat.title,
+        messages: newChat.messages,
+      };
+    }),
+  get: tProcedure
+    .input<ParserWithInputOutput<SafeUser, SafeUser>>(
+      z.object({
+        id: z.string().startsWith("wa"),
+        name: z.string(),
+        email: z.string().email(),
+      })
+    )
+    .query(async ({ input }) => {
+      const chat = await getChats(input).catch(e => {
+        if (e) {
+          throw new tError({
+            code: "NOT_FOUND",
+            message: "user was not found",
+            cause: "you are not a registered user",
+          });
+        }
+      });
+
       return chat;
     }),
-  message: tProcedure
-    .input(
+  one: tProcedure
+    .input<
+      ParserWithInputOutput<
+        { user: SafeUser; chatID: string },
+        { user: SafeUser; chatID: string }
+      >
+    >(
       z.object({
-        id: z.string(),
-        message: z.object({ time: z.number(), content: z.string() }),
+        user: z.object({
+          id: z.string().startsWith("wau"),
+          email: z.string().email(),
+          name: z.string(),
+        }),
+        chatID: z.string().startsWith("wac"),
       })
     )
-    .mutation(({ input }) => {
-      const i = chats.findIndex(chat => chat.id === input.id);
-      chats[i].messages.push(input.message);
+    .query(async ({ input }): Promise<Chat> => {
+      const chat = await getChat(input.user, input.chatID).catch(e => {
+        if (e.message === "no_chat_found") {
+          throw new tError({
+            code: "NOT_FOUND",
+            cause: "chat might have been deleted",
+            message: e.message,
+          });
+        } else if (e.message === "not_a_member") {
+          throw new tError({
+            code: "UNAUTHORIZED",
+            cause: "user is not a member of this chat",
+            message: e.message,
+          });
+        } else {
+          throw new tError({
+            code: "INTERNAL_SERVER_ERROR",
+            cause: "unknown",
+            message: e.message,
+          });
+        }
+      });
+
+      return {
+        id: chat.id,
+        members: chat.members,
+        messages: chat.messages,
+        title: chat.title,
+      };
     }),
+  message: tProcedure
+    .input<
+      ParserWithInputOutput<
+        { user: SafeUser; chatID: string; message: Message },
+        { user: SafeUser; chatID: string; message: Message }
+      >
+    >(
+      z.object({
+        user: z.object({
+          id: z.string().startsWith("wau"),
+          email: z.string().email(),
+          name: z.string(),
+        }),
+        chatID: z.string().startsWith("wac"),
+        message: z.object({
+          sender: z.string().startsWith("wac"),
+          time: z.number(),
+          content: z.string(),
+        }),
+      })
+    )
+    .mutation(async ({ input }) => {}),
+  join: tProcedure
+    .input<
+      ParserWithInputOutput<
+        { chatID: string; user: SafeUser },
+        { chatID: string; user: SafeUser }
+      >
+    >(
+      z.object({
+        chatID: z.string().startsWith("wac"),
+        user: z.object({
+          id: z.string().startsWith("wau"),
+          email: z.string().email(),
+          name: z.string(),
+        }),
+      })
+    )
+    .query(({ input }) => {}),
 });
 
 export default chatRouter;

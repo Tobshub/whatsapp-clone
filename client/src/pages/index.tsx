@@ -10,7 +10,11 @@ import { Outlet, useNavigate } from "react-router-dom";
 
 export default function Index() {
   const { theme } = useContext(ThemeContext);
-  const { data: user, isLoading } = useQuery({
+  const {
+    data: user,
+    isLoading,
+    isFetching,
+  } = useQuery({
     queryKey: ["user"],
     queryFn: getUser,
   });
@@ -18,7 +22,7 @@ export default function Index() {
 
   useEffect(() => {
     // redirect to the login screen if there is no user
-    if (!user && !isLoading) {
+    if (!user && !isLoading && !isFetching) {
       navigate("/user/login", { replace: true });
     } else if (user) {
       // add userID to the handshake to use as default room

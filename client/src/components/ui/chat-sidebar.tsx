@@ -1,16 +1,26 @@
 import ThemeContext from "@context/theme";
+import { getUser } from "@services/user";
 import serverIO from "@utils/socket";
 import trpc from "@utils/trpc";
-import { useContext } from "react";
+import { useContext, useEffect, useState } from "react";
 import { Link, NavLink } from "react-router-dom";
 
-export default function ChatSideBar() {
+export default function ChatSideBar({ user }: { user: SafeUser }) {
   const { theme } = useContext(ThemeContext);
-  const chats = trpc.chats.get.useQuery();
+  const chats = trpc.chats.get.useQuery(user);
 
-  serverIO.on("new_chat", () => {
-    chats.refetch();
-  });
+  if (chats.error) console.warn(chats.error);
+
+  useEffect(() => {
+    serverIO().then(socket => {
+      if (socket) {
+        socket.on("new_chat", () => {
+          console.log("new chat alert from server");
+          chats.refetch();
+        });
+      }
+    });
+  }, []);
 
   return (
     <header className={`sidebar h-100 ${theme.middleground}`}>
@@ -40,7 +50,7 @@ export default function ChatSideBar() {
   );
 }
 
-function ChatNav({ chat }: { chat: Chat }) {
+function ChatNav({ chat }: { chat: ChatRef }) {
   return (
     <li className="nav-item text-reset w-100">
       <NavLink
