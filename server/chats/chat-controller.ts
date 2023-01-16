@@ -36,17 +36,25 @@ export async function createChat(user: SafeUser, chat: NewChat) {
     secondUser.chats.push(savedChat);
     secondUser.save();
 
-    // tell the client a new chat has been created
-    clientIO.to(secondUser.id).emit("new_chat");
-
     const firstUser = await UserModel.findOne({
       id: user.id,
       email: user.email,
+    })
+      .then(doc => {
+        if (!doc) {
+          throw new Error("user_not_found");
+        }
+        return doc;
+      })
+      .catch(e => {
+        throw e;
     });
-    if (firstUser) {
       firstUser.chats.push(savedChat);
       firstUser.save();
-    }
+
+    // tell the clients a new chat has been created
+    clientIO.to(secondUser.id).emit("new_chat", savedChat.id);
+    clientIO.to(firstUser.id).emit("new_chat", savedChat.id);
 
     return savedChat;
   } catch (error) {
