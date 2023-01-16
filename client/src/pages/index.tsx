@@ -26,9 +26,7 @@ export default function Index() {
       navigate("/user/login", { replace: true });
     } else if (user) {
       // add userID to the handshake to use as default room
-      serverIO().then(socket => {
-        if (socket) socket.connect();
-      });
+      serverIO().then(socket => socket.connect()).catch();
     }
   }, [user, isLoading]);
 
