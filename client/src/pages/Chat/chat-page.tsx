@@ -1,10 +1,10 @@
 import ThemeContext from "@context/theme";
 import { getUser } from "@services/user";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import csx from "@utils/csx";
 import serverIO from "@utils/socket";
 import trpc from "@utils/trpc";
-import { useState, useContext, useEffect } from "react";
+import React, { useState, useContext, useEffect } from "react";
 import { LoaderFunctionArgs, useLoaderData } from "react-router-dom";
 
 export function loader({ params, request }: LoaderFunctionArgs) {
@@ -15,10 +15,19 @@ export function loader({ params, request }: LoaderFunctionArgs) {
 export default function ChatPage() {
   const id = useLoaderData() as string;
   const { theme } = useContext(ThemeContext);
+  const queryClient = useQueryClient();
   const { data: user, isLoading: userLoading } = useQuery({
     queryKey: ["user"],
     queryFn: getUser,
   });
+
+  // message state
+  const [newMessage, setNewMessage] = useState("");
+
+  // handle message state
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setNewMessage(e.target.value);
+  };
 
   if (!user) {
     if (userLoading) {
@@ -28,26 +37,13 @@ export default function ChatPage() {
     }
   }
 
-  const joinChat = trpc.chats.join.useQuery(
-    { chatID: id, user },
-    { enabled: false }
-  );
-
   // join room on mount
   useEffect(() => {
     serverIO().then(socket => {
-      if (socket) {
-        console.log("joining...");
         socket.emit("join_chat", id);
-      }
     });
-    // leave the room on dismount
-    return () => {};
+    // TODO: leave the room on dismount
   }, []);
-
-  // const messageMutation = trpc.chats.message.useMutation
-
-  const sendMessage = async () => {};
 
   const {
     data: chat,
@@ -55,6 +51,40 @@ export default function ChatPage() {
     isLoading: chatLoading,
   } = trpc.chats.one.useQuery({ user, chatID: id });
 
+  const messageMutation = trpc.chats.message.useMutation();
+
+  const sendMessage = async (messageContent: string) => {
+    if (chat) {
+      const message = {
+        content: messageContent,
+        sender: user.id,
+        time: Date.now(),
+      };
+
+      chat.messages.push(message);
+
+      queryClient.setQueryData(["chats", "one"], chat);
+
+      // is this needed ?
+      serverIO().then(socket => {
+        // emit a new message event with the message object and the chat id
+        socket.emit("new_message", message, id);
+      });
+
+      await messageMutation.mutateAsync({
+        user,
+        chatID: id,
+        message,
+      });
+    }
+  };
+
+  // handle form submit
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    await sendMessage(newMessage);
+    setNewMessage("");
+  };
   if (error) throw error;
   if (chatLoading) return <>Loading...</>;
 
@@ -66,13 +96,29 @@ export default function ChatPage() {
       </h3>
       <div>
         <ul>
-          {chat.messages.map(message => (
-            <li>{message.content}</li>
-          ))}
+          {chat.messages.map(message =>
+            message.sender === user.id ? (
+              <li key={message.time}>
+                <em>You:</em>
+                <span>{message.content}</span>
+              </li>
+            ) : (
+              <li key={message.time}>
+                <em>Them:</em>
+                <span>{message.content}</span>
+              </li>
+            )
+          )}
         </ul>
-        <form className="input-group w-50">
-          <input className="form-control" />
-          <button className={csx(theme.buttons)}>Send</button>
+        <form className="input-group w-50" onSubmit={handleSubmit}>
+          <input
+            className="form-control"
+            onChange={handleChange}
+            value={newMessage}
+          />
+          <button className={csx(theme.buttons)} type="submit">
+            Send
+          </button>
         </form>
       </div>
     </div>
