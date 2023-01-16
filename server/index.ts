@@ -36,6 +36,13 @@ clientIO.on("connection", socket => {
     // join a chat room with its ID
     socket.join(chatID);
   });
+
+  // should this be here ???
+  socket.on("new_message", (message, chatID) => {
+    console.log("sending message...");
+    // retaliate by sending the message to the room with the specified chat-id
+    socket.to(chatID).emit("message", message);
+  });
 });
 
 server.listen(2048, () => {

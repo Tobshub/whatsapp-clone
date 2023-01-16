@@ -48,9 +48,9 @@ export async function createChat(user: SafeUser, chat: NewChat) {
       })
       .catch(e => {
         throw e;
-    });
-      firstUser.chats.push(savedChat);
-      firstUser.save();
+      });
+    firstUser.chats.push(savedChat);
+    firstUser.save();
 
     // tell the clients a new chat has been created
     clientIO.to(secondUser.id).emit("new_chat", savedChat.id);
@@ -107,12 +107,6 @@ export async function sendMessage(message: Message, chatID: string) {
 
     chat.messages.push(message);
     chat.save();
-
-    clientIO.to(chatID).emit("message", message);
-
-    for (const user of chat.members) {
-      clientIO.to(user.id).emit("chat_update", chatID);
-    }
   } catch (error) {
     throw error;
   }
