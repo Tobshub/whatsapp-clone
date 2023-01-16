@@ -24,7 +24,7 @@ export default function ChatSideBar({ user }: { user: SafeUser }) {
 
   return (
     <header className={`sidebar h-100 ${theme.middleground}`}>
-      <nav className="navbar navbar-expand-lg d-flex flex-column">
+      <nav className="navbar d-flex flex-column">
         <h1>
           <Link to={{ pathname: "/" }} className="navbar-brand text-reset">
             WhichApp
