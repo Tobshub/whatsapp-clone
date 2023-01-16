@@ -2,7 +2,6 @@ import ThemeContext from "@context/theme";
 import UserForm from "@layouts/forms/user-form";
 import genId from "@services/id";
 import { getUser } from "@services/user";
-import { useQueryClient } from "@tanstack/react-query";
 import csx from "@utils/csx";
 import trpc from "@utils/trpc";
 import { useContext, useEffect, useState } from "react";
@@ -46,6 +45,7 @@ export default function NewChat() {
 
   useEffect(() => {
     if (createNewChat.data) {
+      // navigate to the newly created chat
       navigate(`/chat/${createNewChat.data.id}`, { replace: true });
     }
   }, [createNewChat.data]);
