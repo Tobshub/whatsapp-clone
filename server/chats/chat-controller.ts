@@ -83,11 +83,6 @@ export async function getChat(user: SafeUser, chatID: string) {
     throw new Error("not_a_member");
   }
 
-  // TODO: catch client-side emit of "join_chat"
-  clientIO.on("join_chat", chatID => {
-    console.log("user joining chat: ", chatID);
-  });
-
   return chat;
 }
 
