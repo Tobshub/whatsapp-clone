@@ -13,12 +13,10 @@ export default function ChatSideBar({ user }: { user: SafeUser }) {
 
   useEffect(() => {
     serverIO().then(socket => {
-      if (socket) {
-        socket.on("new_chat", () => {
-          console.log("new chat alert from server");
-          chats.refetch();
-        });
-      }
+      socket.on("new_chat", chatID => {
+        console.log("new chat alert from server", { chatID });
+        chats.refetch();
+      });
     });
   }, []);
 
