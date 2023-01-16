@@ -85,6 +85,21 @@ export default function ChatPage() {
     await sendMessage(newMessage);
     setNewMessage("");
   };
+
+  // receive message
+  useEffect(() => {
+    serverIO().then(socket => {
+      // why does this work :(
+      socket.on("message", message => {
+        console.log("received new message...", message);
+        if (chat) {
+          chat.messages.push(message);
+          queryClient.setQueryData(["chats", "one"], chat);
+        }
+      });
+    });
+  }, [chatLoading]);
+
   if (error) throw error;
   if (chatLoading) return <>Loading...</>;
 
