@@ -1,5 +1,9 @@
 import trpc from "@utils/trpc";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import {
+  createBrowserRouter,
+  redirect,
+  RouterProvider,
+} from "react-router-dom";
 import { appQueryClient, appTrpcClient } from "@lib/query-client";
 import { QueryClientProvider } from "@tanstack/react-query";
 import Index from "@pages/index";
@@ -9,6 +13,7 @@ import ThemeContext, { themes } from "@context/theme";
 import { useState } from "react";
 import UserLogin from "@pages/Account/login";
 import UserSignUp from "@pages/Account/signup";
+import { getUser } from "@services/user";
 
 const router = createBrowserRouter([
   {
@@ -28,6 +33,15 @@ const router = createBrowserRouter([
   },
   {
     path: "/user",
+    loader: async () => {
+      const user = await getUser();
+      // redirect to index if a user is already logged in...
+      if (user) {
+        return redirect("/");
+      } else {
+        return null;
+      }
+    },
     children: [
       {
         path: "login",
