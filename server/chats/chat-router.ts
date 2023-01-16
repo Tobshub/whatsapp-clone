@@ -2,7 +2,12 @@ import { tError, tProcedure, tRouter } from "../trpc";
 import z from "zod";
 import { ParserWithInputOutput } from "@trpc/server/dist/core/parser";
 import { clientIO } from "..";
-import { createChat, getChat, getChats } from "./chat-controller";
+import {
+  createChat,
+  getChat,
+  getChats,
+  sendMessage,
+} from "./chat-controller";
 
 const chatRouter = tRouter({
   new: tProcedure
@@ -46,9 +51,6 @@ const chatRouter = tRouter({
           }
         });
 
-      // tell the client a new chat has been made
-      clientIO.to(input.user.id).emit("new_chat");
-
       return {
         id: newChat.id,
         members: newChat.members,
@@ -66,13 +68,11 @@ const chatRouter = tRouter({
     )
     .query(async ({ input }) => {
       const chat = await getChats(input).catch(e => {
-        if (e) {
-          throw new tError({
-            code: "NOT_FOUND",
-            message: "user was not found",
-            cause: "you are not a registered user",
-          });
-        }
+        throw new tError({
+          code: "NOT_FOUND",
+          message: "user was not found",
+          cause: "you are not a registered user",
+        });
       });
 
       return chat;
@@ -138,30 +138,23 @@ const chatRouter = tRouter({
         }),
         chatID: z.string().startsWith("wac"),
         message: z.object({
-          sender: z.string().startsWith("wac"),
+          sender: z.string().startsWith("wau"),
           time: z.number(),
           content: z.string(),
         }),
       })
     )
-    .mutation(async ({ input }) => {}),
-  join: tProcedure
-    .input<
-      ParserWithInputOutput<
-        { chatID: string; user: SafeUser },
-        { chatID: string; user: SafeUser }
-      >
-    >(
-      z.object({
-        chatID: z.string().startsWith("wac"),
-        user: z.object({
-          id: z.string().startsWith("wau"),
-          email: z.string().email(),
-          name: z.string(),
-        }),
-      })
-    )
-    .query(({ input }) => {}),
+    .mutation(async ({ input }) => {
+      await sendMessage(input.message, input.chatID).catch(e => {
+        throw new tError({
+          code: "NOT_FOUND",
+          message: e.message,
+          cause: "could not find chat with that id",
+        });
+      });
+
+      return;
+    }),
 });
 
 export default chatRouter;
